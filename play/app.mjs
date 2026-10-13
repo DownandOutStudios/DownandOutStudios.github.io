@@ -1,10 +1,11 @@
+import {nextEncounter,savedEncounter} from './progression.mjs';
 import {completionThanks} from './feedback.mjs';
-import {createMenus} from './menus.mjs?v=2';
-import stages from './stages.mjs?v=10';
+import {createMenus} from './menus.mjs?v=3';
+import stages from './stages.mjs?v=11';
 import * as THREE from 'three';
 import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
 import {clone as cloneRig} from './vendor/utils/SkeletonUtils.js';
-import {Game,key,visual,VERSION,DIRS,COLS,ROWS,cameraDirection} from './engine.mjs?v=5';
+import {Game,key,visual,VERSION,DIRS,COLS,ROWS,cameraDirection} from './engine.mjs?v=6';
 const $=s=>document.querySelector(s),container=$('#scene'),overlay=$('#overlay'),panel=overlay.firstElementChild;
 $('#version').textContent=VERSION+' · Independent browser build';
 let stage=stages[0],bossModel=null,bossDisplay={x:14,z:10},warningModels=new Map();
@@ -26,7 +27,7 @@ function newWorld(){if(group){scene.remove(group);dispose(group);}group=new THRE
  }else{for(const parity of [0,1]){const cells=[...game.floor].filter(k=>{const[x,z]=k.split(',').map(Number);return (x+z)%2===parity;});const geometry=new THREE.PlaneGeometry(.995,.995);geometry.rotateX(-Math.PI/2);const material=new THREE.MeshStandardMaterial({map:tileTextures[parity?'floor-a':'floor-b'],roughness:.8});const floor=new THREE.InstancedMesh(geometry,material,cells.length);floor.userData.temporary=true;cells.forEach((k,i)=>{const[x,z]=k.split(',').map(Number);floor.setMatrixAt(i,new THREE.Matrix4().makeTranslation(x-(COLS-1)/2,-.01,z-(ROWS-1)/2));});group.add(floor);}}
  const addCrate=(k,kind)=>{const[x,z]=k.split(',').map(Number),m=makeReferenceCrate(kind);cellPosition(m,x,z);group.add(m);crateModels.set(k,m);};for(const k of game.walls)addCrate(k,'metal');for(const k of game.crates)addCrate(k,'wood');
  playerModel=fit(models[$('#character')?.value||chosen],.78,1.32);group.add(playerModel);const marker=circle(0x50d9f0,.43,.02);playerModel.add(marker);botModels=game.bots.map(b=>{const m=fit(models.clockwork,.8,1.30);group.add(m);return m;});
- if(game.boss){bossModel=fit(models.boss,2.5,2.2);group.add(bossModel);bossDisplay={x:game.boss.x,z:game.boss.z};cellPosition(bossModel,bossDisplay.x,bossDisplay.z);}
+ if(game.boss){bossModel=fit(models[game.definition.miniBoss?'armourdrillo':'boss'],game.definition.miniBoss?2.25:2.5,game.definition.miniBoss?1.45:2.2);group.add(bossModel);bossDisplay={x:game.boss.x,z:game.boss.z};cellPosition(bossModel,bossDisplay.x,bossDisplay.z);}
  gate=fit(models.gate,1.3,1.5);cellPosition(gate,game.gate.x,game.gate.z);group.add(gate);portalLight=circle(0x63b3bf,.55,.025);cellPosition(portalLight,game.gate.x,game.gate.z,.025);group.add(portalLight);
  angle=angleTarget=0;syncWorld();}
 let chosen='mechanic',pendingSave=null,portraitRenderer,portraitScene,portraitCamera,portraitModel;
@@ -34,20 +35,20 @@ const tileTextures={};
 function makeReferenceCrate(kind){const wood=kind==='wood',h=wood?.49:.66;const sides=new THREE.MeshStandardMaterial({map:tileTextures[wood?'wood-side':'metal-side'],roughness:.75});const top=new THREE.MeshStandardMaterial({map:tileTextures[wood?'wood-top':'metal-top'],roughness:.7});const root=new THREE.Group(),m=new THREE.Mesh(new THREE.BoxGeometry(wood?.906:.95,h,wood?.906:.95),[sides,sides,top,sides,sides,sides]);m.position.y=h/2;m.userData.temporary=true;root.add(m);return root;}
 
 async function stageAssets(meta){
- if(meta.level===10&&!models.boss)models.boss=(await loader.loadAsync('levels/10/boss.glb')).scene;
+ const bossKey=meta.miniBoss?'armourdrillo':meta.level===10?'boss':null;if(bossKey&&!models[bossKey])models[bossKey]=(await loader.loadAsync(`${meta.folder}/boss.glb`)).scene;
  const names=['wood-top','wood-side','metal-top','metal-side',...(meta.level>1?['floor-a','floor-b']:[])];
  const loaded=await Promise.all(names.map(async n=>{const t=await new THREE.TextureLoader().loadAsync(`${meta.folder}/${n}.png`);t.colorSpace=THREE.SRGBColorSpace;return[n,t];}));
  for(const t of Object.values(tileTextures))t.dispose();for(const[n,t]of loaded)tileTextures[n]=t;
- $('#viewport').style.backgroundImage=`url('${meta.background}')`;music.level.pause();music.level.src=meta.music;music.level.load();stage=meta;$('#level-name').textContent=`LEVEL ${meta.level} · ${meta.name.toUpperCase()}`;
- $('#edition').textContent=`Browser playtest · ${stages.length} levels`;
+ $('#viewport').style.backgroundImage=`url('${meta.background}')`;music.level.pause();music.level.src=meta.music;music.level.load();stage=meta;$('#level-name').textContent=meta.miniBoss?'ARMOURDRILLO · MINI-BOSS':`LEVEL ${meta.level} · ${meta.name.toUpperCase()}`;
+ $('#edition').textContent='Browser playtest · 10 levels + Armourdrillo';
 }
-async function start(){menus.clear();chosen=menus.settings.character;const meta=stages.find(s=>s.level===Number(document.body.dataset.previewLevel))||stages.find(s=>s.level===pendingSave?.level)||stages[0];
+async function start(){menus.clear();chosen=menus.settings.character;const meta=stages.find(s=>s.level===Number(document.body.dataset.previewLevel))||savedEncounter(stages,pendingSave)||stages[0];
  started=false;overlay.hidden=false;panel.innerHTML='<h1>Opening the arena…</h1>';
- try{const definition=(await import(meta.layout)).default;await stageAssets(meta);game=new Game(definition.seed,definition);if(pendingSave){game.entry={up:{...pendingSave.up},score:pendingSave.score,time:pendingSave.time};game.reset();pendingSave=null;}started=true;held.clear();tap=null;lastHUD='';newWorld();overlay.hidden=true;$('#pause').disabled=false;syncAudio();toast(game.boss?'Defeat the Furnace King. Move away from flashing attack markers.':'Defeat the enemies to activate the teleport gate.');container.firstElementChild.focus();}
+ try{const definition=(await import(meta.layout)).default;await stageAssets(meta);game=new Game(definition.seed,definition);if(pendingSave){game.entry={up:{...pendingSave.up},score:pendingSave.score,time:pendingSave.time};game.reset();pendingSave=null;}started=true;held.clear();tap=null;lastHUD='';newWorld();overlay.hidden=true;$('#pause').disabled=false;syncAudio();toast(game.boss?`Defeat ${game.boss.name}. Move away from flashing attack markers.`:'Defeat the enemies to activate the teleport gate.');container.firstElementChild.focus();}
  catch(error){console.error(error);panel.innerHTML='<h1>Arena could not load.</h1><p>Check your connection and try again.</p><button id="menu">Main menu</button>';$('#menu').onclick=menu;}
 }
 function restart(){game.reset();held.clear();tap=null;newWorld();overlay.hidden=true;lastHUD='';syncAudio();container.firstElementChild.focus();}
-async function nextStage(){const next=stages.find(s=>s.level===game.level+1);if(!next){finish('complete');return;}
+async function nextStage(){const next=nextEncounter(stages,game.definition);if(!next){finish('complete');return;}
  started=false;held.clear();tap=null;syncAudio();overlay.hidden=false;panel.innerHTML=`<h1>Travelling to ${next.name}…</h1>`;
  try{const definition=(await import(next.layout)).default;await stageAssets(next);game.advance(definition);newWorld();lastHUD='';started=true;overlay.hidden=true;syncAudio();container.firstElementChild.focus();toast('Teleport arrived — find a safe route.');}
  catch(error){console.error(error);panel.innerHTML='<h1>Travel paused.</h1><p>The next arena could not load. Your run is still here.</p><button id="travel-retry">Try again</button><button id="menu">Main menu</button>';$('#travel-retry').onclick=nextStage;$('#menu').onclick=menu;}
@@ -64,7 +65,7 @@ for(const b of document.querySelectorAll('[data-dir]')){const map={up:[0,-1],dow
 const iconImages={};let lastHUD='';
 function makeIcons(){const r=new THREE.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});r.setSize(96,96);r.outputColorSpace=THREE.SRGBColorSpace;for(const k of Object.keys(kinds)){const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(35,1,.1,10);cam.position.set(.8,.8,1.5);cam.lookAt(0,.35,0);sc.add(new THREE.HemisphereLight(0xffffff,0x444444,3));const light=new THREE.DirectionalLight(0xffffff,3);light.position.set(2,3,2);sc.add(light);sc.add(fit(models[k],.65,.65));r.render(sc,cam);iconImages[k]=r.domElement.toDataURL('image/png');}r.dispose();}
 const kinds={speed:['↯','Speed'],bombs:['●','Bomb capacity'],range:['✣','Blast range'],life:['♥','Lives'],shield:['⬡','Shield'],kick:['➜','Bomb kick'],remote:['⌁','Remote'],magnet:['∩','Magnet']};
-function updateHUD(){const sig=JSON.stringify(game.up)+game.defeated+game.level+(game.boss?.hp??0);if(sig===lastHUD)return;lastHUD=sig;$('#bots').textContent=game.boss?`Furnace King ${game.boss.hp} / ${game.boss.maxHP}`:`Bots ${game.defeated} / ${game.bots.length}`;$('#rail').innerHTML=Object.entries(kinds).map(([k,[icon,label]])=>`<span title="${label}" aria-label="${label}: ${game.up[k]}"><img class="icon" src="${iconImages[k]}" alt="${label}">${game.up[k]}</span>`).join('');}
+function updateHUD(){const sig=JSON.stringify(game.up)+game.defeated+game.level+(game.boss?.hp??0);if(sig===lastHUD)return;lastHUD=sig;$('#bots').textContent=game.boss?`${game.boss.name} ${game.boss.hp} / ${game.boss.maxHP}`:`Bots ${game.defeated} / ${game.bots.length}`;$('#rail').innerHTML=Object.entries(kinds).map(([k,[icon,label]])=>`<span title="${label}" aria-label="${label}: ${game.up[k]}"><img class="icon" src="${iconImages[k]}" alt="${label}">${game.up[k]}</span>`).join('');}
 function syncWorld(){const time=game.time,p=visual(game.player);cellPosition(playerModel,p.x,p.z);playerModel.visible=game.dying<=0&&(game.invincible<=0||Math.floor(time*8)%2===0);if(game.player.lastDir)playerModel.rotation.y=Math.atan2(game.player.lastDir[0],game.player.lastDir[1]);const body=playerModel.children[0];body.position.y=Math.sin(time*18)*.045*(game.player.move?1:0);
  game.bots.forEach((b,i)=>{botModels[i].visible=b.alive;const p=visual(b);cellPosition(botModels[i],p.x,p.z);if(b.lastDir)botModels[i].rotation.y=Math.atan2(b.lastDir[0],b.lastDir[1]);botModels[i].children[0].position.y=b.move?Math.sin(time*13+i)*.04:0;});
  for(const[k,m]of crateModels)if(!game.walls.has(k)&&!game.crates.has(k)){group.remove(m);dispose(m);crateModels.delete(k);}
@@ -87,7 +88,7 @@ $('#report').onclick=()=>{if(started&&game.state==='playing')showPause();$('#rep
 
 function portrait(mount,id,yaw){if(!models[id])return;if(!portraitRenderer){portraitRenderer=new THREE.WebGLRenderer({alpha:true,antialias:true});portraitRenderer.setSize(380,330);portraitRenderer.outputColorSpace=THREE.SRGBColorSpace;portraitRenderer.toneMapping=THREE.ACESFilmicToneMapping;portraitRenderer.domElement.setAttribute('role','img');}mount.replaceChildren(portraitRenderer.domElement);portraitRenderer.domElement.setAttribute('aria-label',id+' 3D model');const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(35,380/330,.1,30);cam.position.set(0,1.9,5.6);cam.lookAt(0,1.25,0);sc.add(new THREE.HemisphereLight(0xffffff,0x685235,2.7));const light=new THREE.DirectionalLight(0xffefdc,3);light.position.set(-2,4,4);sc.add(light);const model=fit(models[id],2.1,2.5);model.rotation.y=yaw;sc.add(model);portraitScene=sc;portraitCamera=cam;portraitModel=model;portraitRenderer.render(sc,cam);}
 const guideDetails=['Move faster','Place another bomb','Extend blast reach','Gain one life','Absorb a hit','Push bombs away','Trigger bombs with your remote key','Collect adjacent items'];
-const menus=createMenus({toast,portrait,preferences(s){chosen=s.character;for(const a of Object.values(music))a.volume=s.volume*.5;resize();},soundOn:()=>sound,toggleSound:()=>$('#sound').click(),powerGuide:()=>Object.entries(kinds).map(([k,[,label]],i)=>({label,image:iconImages[k],detail:guideDetails[i]})),start(id){chosen=id;pendingSave=null;start();},load(value){chosen=value.character;pendingSave=value;start();},main:menu,resume:showPause,restart,canSave:()=>started&&game.state==='paused'&&game.up.life>0,checkpoint:()=>({schema:1,level:game.level,character:chosen,up:{...game.up},score:game.score,time:game.time,savedAt:new Date().toISOString()})});
+const menus=createMenus({toast,portrait,preferences(s){chosen=s.character;for(const a of Object.values(music))a.volume=s.volume*.5;resize();},soundOn:()=>sound,toggleSound:()=>$('#sound').click(),powerGuide:()=>Object.entries(kinds).map(([k,[,label]],i)=>({label,image:iconImages[k],detail:guideDetails[i]})),start(id){chosen=id;pendingSave=null;start();},load(value){chosen=value.character;pendingSave=value;start();},main:menu,resume:showPause,restart,canSave:()=>started&&game.state==='paused'&&game.up.life>0,checkpoint:()=>({schema:1,level:game.level,miniBoss:!!game.definition.miniBoss,character:chosen,up:{...game.up},score:game.score,time:game.time,savedAt:new Date().toISOString()})});
 chosen=menus.settings.character;for(const a of Object.values(music))a.volume=menus.settings.volume*.5;menus.render('main');
 
 boot();

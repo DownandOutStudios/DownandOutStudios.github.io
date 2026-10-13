@@ -1,6 +1,6 @@
-import {Boss} from './boss.mjs';
+import {Boss} from './boss.mjs?v=2';
 import reference from './level1.mjs?v=24';
-export const VERSION='browser-0.4.1';
+export const VERSION='browser-0.5.0';
 export const COLS=30,ROWS=20,DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 export function cameraDirection(direction,angle){let[x,z]=direction;const quarter=((Math.round(angle/(Math.PI/2))%4)+4)%4;for(let i=0;i<quarter;i++)[x,z]=[z,-x];return[x,z];}
 export const key=(x,z)=>`${x},${z}`;
@@ -17,7 +17,7 @@ export function layout(seed=20261001,definition=reference){
 export class Game {
  constructor(seed=20261001,definition=reference){this.seed=seed;this.definition=definition;this.level=definition.level||1;this.entry=null;this.events=[];this.reset();}
  advance(definition){this.entry={up:{...this.up},score:this.score,time:this.time};this.definition=definition;this.level=definition.level;this.seed=definition.seed;this.reset();}
- reset(){const l=layout(this.seed,this.definition);Object.assign(this,l);this.boss=this.definition.boss?new Boss():null;this.bots=l.bots.map((b,i)=>({...b,id:i,alive:true,move:null,think:.5+i*.3,lastDir:null}));this.player={...l.spawn,move:null};this.bombs=new Map();this.fire=new Map();this.pickups=new Map();this.up={speed:0,bombs:1,range:2,shield:0,life:3,kick:0,remote:0,magnet:0};this.time=0;this.score=0;this.defeated=0;this.state='playing';this.portalActive=false;this.invincible=2;this.events=[];this.dying=0;if(this.entry){this.up={...this.entry.up};this.score=this.entry.score;this.time=this.entry.time;}}
+ reset(){const l=layout(this.seed,this.definition);Object.assign(this,l);this.boss=this.definition.boss?new Boss(this.definition.boss):null;this.bots=l.bots.map((b,i)=>({...b,id:i,alive:true,move:null,think:.5+i*.3,lastDir:null}));this.player={...l.spawn,move:null};this.bombs=new Map();this.fire=new Map();this.pickups=new Map();this.up={speed:0,bombs:1,range:2,shield:0,life:3,kick:0,remote:0,magnet:0};this.time=0;this.score=0;this.defeated=0;this.state='playing';this.portalActive=false;this.invincible=2;this.events=[];this.dying=0;if(this.entry){this.up={...this.entry.up};this.score=this.entry.score;this.time=this.entry.time;}}
  blocked(x,z,actor=null){const k=key(x,z);return !!(this.boss&&this.boss.hp>0&&this.boss.x===x&&this.boss.z===z&&actor!==this.boss)||!this.floor.has(k)||this.walls.has(k)||this.crates.has(k)||(this.bombs.has(k)&&!(actor&&same(actor,this.bombs.get(k))));}
  emit(type,data={}){this.events.push({type,...data});}
  takeEvents(){const e=this.events;this.events=[];return e;}
