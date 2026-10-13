@@ -1,11 +1,11 @@
-import stages from './stages.mjs';
+import stages from './stages.mjs?v=10';
 import * as THREE from 'three';
 import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
 import {clone as cloneRig} from './vendor/utils/SkeletonUtils.js';
-import {Game,key,visual,VERSION,DIRS,COLS,ROWS,cameraDirection} from './engine.mjs';
+import {Game,key,visual,VERSION,DIRS,COLS,ROWS,cameraDirection} from './engine.mjs?v=3';
 const $=s=>document.querySelector(s),container=$('#scene'),overlay=$('#overlay'),panel=overlay.firstElementChild;
 $('#version').textContent=VERSION+' · Independent browser build';
-let stage=stages[0];
+let stage=stages[0],bossModel=null,bossDisplay={x:14,z:10},warningModels=new Map();
 let renderer,scene,camera,game=new Game(),models={},group,playerModel,botModels=[],crateModels=new Map(),bombModels=new Map(),fireModels=new Map(),pickupModels=new Map(),gate,portalLight,angle=0,angleTarget=0,started=false,sound=false,last=0,held=new Map(),tap=null,tapUntil=0,toastUntil=0,menuMarkup=panel.innerHTML;
 const loading=new THREE.LoadingManager(),loader=new GLTFLoader(loading),clock=new THREE.Clock();
 const music={menu:new Audio('assets/menu.mp3'),level:new Audio('assets/woodland.mp3')};for(const a of Object.values(music)){a.loop=true;a.volume=.35;}
@@ -19,11 +19,12 @@ function dispose(g){g.traverse(o=>{if(o.userData.temporary){o.geometry?.dispose(
 function fit(original,width,height){const copy=cloneRig(original),box=new THREE.Box3().setFromObject(copy),sz=box.getSize(new THREE.Vector3());const s=Math.min(width/Math.max(sz.x,sz.z),height/sz.y);const root=new THREE.Group();copy.scale.multiplyScalar(s);box.setFromObject(copy);const center=box.getCenter(new THREE.Vector3());copy.position.x-=center.x;copy.position.z-=center.z;copy.position.y-=box.min.y;copy.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;}});root.add(copy);return root;}
 function cellPosition(o,x,z,y=0){o.position.set(x-(COLS-1)/2,y,z-(ROWS-1)/2);}
 function circle(color,radius,y){const mesh=new THREE.Mesh(new THREE.CircleGeometry(radius,32),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.5,depthWrite:false}));mesh.rotation.x=-Math.PI/2;mesh.position.y=y;mesh.userData.temporary=true;return mesh;}
-function newWorld(){if(group){scene.remove(group);dispose(group);}group=new THREE.Group();scene.add(group);crateModels.clear();bombModels.clear();fireModels.clear();pickupModels.clear();
+function newWorld(){if(group){scene.remove(group);dispose(group);}group=new THREE.Group();scene.add(group);crateModels.clear();bombModels.clear();fireModels.clear();pickupModels.clear();warningModels.clear();bossModel=null;
  if(game.level===1){const floorTemplate=fit(models.floor,.99,999);const fb=new THREE.Box3().setFromObject(floorTemplate);floorTemplate.position.y=-fb.max.y;floorTemplate.updateMatrixWorld(true);floorTemplate.traverse(part=>{if(!part.isMesh)return;const floor=new THREE.InstancedMesh(part.geometry,part.material,game.floor.size);let i=0;const matrix=new THREE.Matrix4();for(const k of game.floor){const[x,z]=k.split(',').map(Number);matrix.makeTranslation(x-(COLS-1)/2,-.025,z-(ROWS-1)/2);matrix.multiply(part.matrixWorld);floor.setMatrixAt(i++,matrix);}floor.receiveShadow=true;group.add(floor);});
  }else{for(const parity of [0,1]){const cells=[...game.floor].filter(k=>{const[x,z]=k.split(',').map(Number);return (x+z)%2===parity;});const geometry=new THREE.PlaneGeometry(.995,.995);geometry.rotateX(-Math.PI/2);const material=new THREE.MeshStandardMaterial({map:tileTextures[parity?'floor-a':'floor-b'],roughness:.8});const floor=new THREE.InstancedMesh(geometry,material,cells.length);floor.userData.temporary=true;cells.forEach((k,i)=>{const[x,z]=k.split(',').map(Number);floor.setMatrixAt(i,new THREE.Matrix4().makeTranslation(x-(COLS-1)/2,-.01,z-(ROWS-1)/2));});group.add(floor);}}
  const addCrate=(k,kind)=>{const[x,z]=k.split(',').map(Number),m=makeReferenceCrate(kind);cellPosition(m,x,z);group.add(m);crateModels.set(k,m);};for(const k of game.walls)addCrate(k,'metal');for(const k of game.crates)addCrate(k,'wood');
  playerModel=fit(models[$('#character')?.value||chosen],.78,1.32);group.add(playerModel);const marker=circle(0x50d9f0,.43,.02);playerModel.add(marker);botModels=game.bots.map(b=>{const m=fit(models.clockwork,.8,1.30);group.add(m);return m;});
+ if(game.boss){bossModel=fit(models.boss,2.5,2.2);group.add(bossModel);bossDisplay={x:game.boss.x,z:game.boss.z};cellPosition(bossModel,bossDisplay.x,bossDisplay.z);}
  gate=fit(models.gate,1.3,1.5);cellPosition(gate,game.gate.x,game.gate.z);group.add(gate);portalLight=circle(0x63b3bf,.55,.025);cellPosition(portalLight,game.gate.x,game.gate.z,.025);group.add(portalLight);
  angle=angleTarget=0;syncWorld();}
 let chosen='mechanic';
@@ -31,6 +32,7 @@ const tileTextures={};
 function makeReferenceCrate(kind){const wood=kind==='wood',h=wood?.49:.66;const sides=new THREE.MeshStandardMaterial({map:tileTextures[wood?'wood-side':'metal-side'],roughness:.75});const top=new THREE.MeshStandardMaterial({map:tileTextures[wood?'wood-top':'metal-top'],roughness:.7});const root=new THREE.Group(),m=new THREE.Mesh(new THREE.BoxGeometry(wood?.906:.95,h,wood?.906:.95),[sides,sides,top,sides,sides,sides]);m.position.y=h/2;m.userData.temporary=true;root.add(m);return root;}
 
 async function stageAssets(meta){
+ if(meta.level===10&&!models.boss)models.boss=(await loader.loadAsync('levels/10/boss.glb')).scene;
  const names=['wood-top','wood-side','metal-top','metal-side',...(meta.level>1?['floor-a','floor-b']:[])];
  const loaded=await Promise.all(names.map(async n=>{const t=await new THREE.TextureLoader().loadAsync(`${meta.folder}/${n}.png`);t.colorSpace=THREE.SRGBColorSpace;return[n,t];}));
  for(const t of Object.values(tileTextures))t.dispose();for(const[n,t]of loaded)tileTextures[n]=t;
@@ -39,7 +41,7 @@ async function stageAssets(meta){
 }
 async function start(){chosen=$('#character')?.value||chosen;const meta=stages.find(s=>s.level===Number(document.body.dataset.previewLevel))||stages[0];
  started=false;overlay.hidden=false;panel.innerHTML='<h1>Opening the arena…</h1>';
- try{const definition=(await import(meta.layout)).default;await stageAssets(meta);game=new Game(definition.seed,definition);started=true;held.clear();tap=null;lastHUD='';newWorld();overlay.hidden=true;$('#pause').disabled=false;syncAudio();toast('Defeat the enemies to activate the teleport gate.');container.firstElementChild.focus();}
+ try{const definition=(await import(meta.layout)).default;await stageAssets(meta);game=new Game(definition.seed,definition);started=true;held.clear();tap=null;lastHUD='';newWorld();overlay.hidden=true;$('#pause').disabled=false;syncAudio();toast(game.boss?'Defeat the Furnace King. Move away from flashing attack markers.':'Defeat the enemies to activate the teleport gate.');container.firstElementChild.focus();}
  catch(error){console.error(error);panel.innerHTML='<h1>Arena could not load.</h1><p>Check your connection and try again.</p><button id="menu">Main menu</button>';$('#menu').onclick=menu;}
 }
 function restart(){game.reset();held.clear();tap=null;newWorld();overlay.hidden=true;lastHUD='';syncAudio();container.firstElementChild.focus();}
@@ -60,7 +62,7 @@ for(const b of document.querySelectorAll('[data-dir]')){const map={up:[0,-1],dow
 const iconImages={};let lastHUD='';
 function makeIcons(){const r=new THREE.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});r.setSize(96,96);r.outputColorSpace=THREE.SRGBColorSpace;for(const k of Object.keys(kinds)){const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(35,1,.1,10);cam.position.set(.8,.8,1.5);cam.lookAt(0,.35,0);sc.add(new THREE.HemisphereLight(0xffffff,0x444444,3));const light=new THREE.DirectionalLight(0xffffff,3);light.position.set(2,3,2);sc.add(light);sc.add(fit(models[k],.65,.65));r.render(sc,cam);iconImages[k]=r.domElement.toDataURL('image/png');}r.dispose();}
 const kinds={speed:['↯','Speed'],bombs:['●','Bomb capacity'],range:['✣','Blast range'],life:['♥','Lives'],shield:['⬡','Shield'],kick:['➜','Bomb kick'],remote:['⌁','Remote'],magnet:['∩','Magnet']};
-function updateHUD(){const sig=JSON.stringify(game.up)+game.defeated+game.level;if(sig===lastHUD)return;lastHUD=sig;$('#bots').textContent=`Bots ${game.defeated} / ${game.bots.length}`;$('#rail').innerHTML=Object.entries(kinds).map(([k,[icon,label]])=>`<span title="${label}" aria-label="${label}: ${game.up[k]}"><img class="icon" src="${iconImages[k]}" alt="${label}">${game.up[k]}</span>`).join('');}
+function updateHUD(){const sig=JSON.stringify(game.up)+game.defeated+game.level+(game.boss?.hp??0);if(sig===lastHUD)return;lastHUD=sig;$('#bots').textContent=game.boss?`Furnace King ${game.boss.hp} / ${game.boss.maxHP}`:`Bots ${game.defeated} / ${game.bots.length}`;$('#rail').innerHTML=Object.entries(kinds).map(([k,[icon,label]])=>`<span title="${label}" aria-label="${label}: ${game.up[k]}"><img class="icon" src="${iconImages[k]}" alt="${label}">${game.up[k]}</span>`).join('');}
 function syncWorld(){const time=game.time,p=visual(game.player);cellPosition(playerModel,p.x,p.z);playerModel.visible=game.dying<=0&&(game.invincible<=0||Math.floor(time*8)%2===0);if(game.player.lastDir)playerModel.rotation.y=Math.atan2(game.player.lastDir[0],game.player.lastDir[1]);const body=playerModel.children[0];body.position.y=Math.sin(time*18)*.045*(game.player.move?1:0);
  game.bots.forEach((b,i)=>{botModels[i].visible=b.alive;const p=visual(b);cellPosition(botModels[i],p.x,p.z);if(b.lastDir)botModels[i].rotation.y=Math.atan2(b.lastDir[0],b.lastDir[1]);botModels[i].children[0].position.y=b.move?Math.sin(time*13+i)*.04:0;});
  for(const[k,m]of crateModels)if(!game.walls.has(k)&&!game.crates.has(k)){group.remove(m);dispose(m);crateModels.delete(k);}
@@ -70,6 +72,8 @@ function syncWorld(){const time=game.time,p=visual(game.player);cellPosition(pla
  for(const[k,m]of fireModels)if(!game.fire.has(k)){group.remove(m);dispose(m);fireModels.delete(k);}
  for(const[k,p]of game.pickups){if(p.ready>time)continue;if(!pickupModels.has(k)){const[x,z]=k.split(',').map(Number),g=fit(models[p.kind],.52,.62);g.add(circle(0xe9bd6c,.32,.02));cellPosition(g,x,z,.08);group.add(g);pickupModels.set(k,g);}pickupModels.get(k).rotation.y=time;pickupModels.get(k).position.y=.08+Math.sin(time*3)*.04;}
  for(const[k,m]of pickupModels)if(!game.pickups.has(k)){group.remove(m);dispose(m);pickupModels.delete(k);}
+ if(bossModel){bossModel.visible=game.boss.hp>0;bossDisplay.x+=(game.boss.x-bossDisplay.x)*.12;bossDisplay.z+=(game.boss.z-bossDisplay.z)*.12;cellPosition(bossModel,bossDisplay.x,bossDisplay.z);bossModel.rotation.y=Math.atan2(p.x-bossDisplay.x,p.z-bossDisplay.z);}
+ const targets=new Set((game.boss?.targets||[]).map(p=>key(p.x,p.z)));for(const k of targets){if(!warningModels.has(k)){const[x,z]=k.split(',').map(Number),m=circle(0xff4218,.65,.045);cellPosition(m,x,z,.045);group.add(m);warningModels.set(k,m);}warningModels.get(k).material.opacity=.25+Math.abs(Math.sin(time*9))*.45;}for(const[k,m]of warningModels)if(!targets.has(k)){group.remove(m);dispose(m);warningModels.delete(k);}
  gate.traverse(o=>{if(o.isMesh){if(!o.userData.originalMaterial){o.material=o.material.clone();o.userData.originalMaterial=true;}o.material.emissive?.setHex(game.portalActive?0x126875:0x000000);o.material.emissiveIntensity=game.portalActive?.5:0;}});portalLight.material.color.setHex(game.portalActive?0x55eeff:0x46616a);portalLight.material.opacity=game.portalActive?.65:.18;updateHUD();}
 function finish(kind){overlay.hidden=false;panel.innerHTML=`<span class="eyebrow">${kind==='complete'?(game.level===10?'CAMPAIGN COMPLETE':'BROWSER RUN COMPLETE'):'RUN ENDED'}</span><h1>${kind==='complete'?'Circuit cleared!':'Out of steam.'}</h1><p>Final score <strong>${game.score}</strong> · ${Math.floor(game.time)} seconds</p><p>${kind==='complete'?(game.level===10?'You defeated the Furnace King and completed all ten levels.':'You reached the last available browser arena. More levels are being tested.'):'Try a new route and keep an escape square clear.'}</p><button class="primary" id="retry">Play again</button><button id="menu">Main menu</button><p class="small">Browser campaign playtest · The UE5 game remains a separate version.</p>`;$('#retry').onclick=start;$('#menu').onclick=menu;held.clear();tap=null;syncAudio();}
 function events(){for(const e of game.takeEvents()){soundEffect(e.type);if(e.type==='pickup')toast(kinds[e.kind][1]+' collected');if(e.type==='portal')toast('Teleport active — walk into the glowing gate.');if(e.type==='hit')toast('Hit! Find a safe route.');if(e.type==='complete')nextStage();if(e.type==='gameover')finish(e.type);}}

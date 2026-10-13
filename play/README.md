@@ -1,13 +1,13 @@
 # Fuse Frenzy browser campaign playtest
 
-Separate browser port based on the Windows build reached through the user's Fuse Frenzy - Play desktop shortcut: Shareable-2026-10-12-HiddenGates, rebuilt13October2026. This is not an Unreal executable running inside the browser.
+Ten campaign arenas, including the Furnace King final boss, based on the Windows build reached through the owner's desktop shortcut. This is a separate browser port. The original Unreal project and Windows package are not modified.
 
-The first campaign map reuses the archived build's generator seed20261001, exact80wooden crates,20×30logical grid, 24 hidden rewards (three of each type) and three bot spawn cells. Existing updated character/clockwork enemy meshes, gate, floor, power-up geometry, textures and looped music are converted/copied for web use. The original Unreal project and Windows build are not edited.
+All ten stages reuse their original layouts, source textures, backgrounds and looped theme tracks. Updated character and clockwork meshes, power-up geometry and teleport gate are browser copies of existing assets. Each level hides 24 pickups under separate wooden crates: three of each of the eight power-up types.
 
-Serve this directory over HTTP/HTTPS. All runtime assets and Three.js are local, with no streaming service, account or server-side game session. Each visitor has an independent in-memory run on their own device. Desktop WebGL2 browsers recommended. Closing/reloading the page resets the run. Tested browser campaign levels with gate travel, persistent lives and upgrades; remaining UE5 campaign, hidden rooms, bosses, online multiplayer and achievement progression are not included yet.
+Defeat the enemies, then walk into the active gate. Lives and upgrades carry between arenas. Scores appear when the run ends or after completing Level 10. No level-skip control is provided. Each visitor runs an independent local game; no streaming host, account or shared game server is required.
 
-Every available level hides three of each of the eight pickup types under distinct wooden crates. No level-skip controls are provided.
+Controls: WASD/arrows move, Space places a bomb, Q/E rotates, Escape pauses, F detonates remote bombs when collected. Sound starts off. The report button downloads a local report and does not send it automatically.
 
-WASD/arrows: move. Space: bomb. Q/E: rotate. Escape: pause. F: remote detonation when collected. Sound starts off and can be enabled by the user. Reports download locally and are not automatically transmitted. Music and effects pause when the browser is hidden.
+Desktop WebGL2 browser recommended. Reloading starts a fresh run. Optional UE5 hidden rooms, the additional mini-boss stage, online multiplayer and achievements are not part of this browser port.
 
-Third-party graphics runtime: Three.js0.180.0, MIT notice in vendor/LICENSE. Font: Nunito, OFL notice in assets/OFL.txt. Game artwork/models/audio reuse the owner's project assets; detailed private source/provenance evidence remains outside this repository. No independent legal clearance claim added.
+Third-party runtime: Three.js 0.180.0, MIT notice in vendor/LICENSE. Nunito font, OFL in assets/OFL.txt. Game asset provenance and private test records are stored outside this public repository. No additional asset-rights clearance claim is made here.
