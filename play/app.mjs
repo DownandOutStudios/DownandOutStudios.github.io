@@ -5,7 +5,7 @@ import stages from './stages.mjs?v=11';
 import * as THREE from 'three';
 import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
 import {clone as cloneRig} from './vendor/utils/SkeletonUtils.js';
-import {Game,key,visual,VERSION,DIRS,COLS,ROWS,cameraDirection} from './engine.mjs?v=7';
+import {Game,key,visual,VERSION,DIRS,COLS,ROWS,cameraDirection} from './engine.mjs?v=8';
 const $=s=>document.querySelector(s),container=$('#scene'),overlay=$('#overlay'),panel=overlay.firstElementChild;
 $('#version').textContent=VERSION+' · Independent browser build';
 let stage=stages[0],bossModel=null,bossDisplay={x:14,z:10},warningModels=new Map();

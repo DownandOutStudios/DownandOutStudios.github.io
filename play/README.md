@@ -19,3 +19,5 @@ Teegwa is temporarily excluded from browser character selection, wardrobe and mo
 After clearing Level 10 and using the final gate, the ending thanks testers and offers the report window. The studio homepage and report window show the existing studio email. Email links open the visitor's mail app; nothing is sent automatically.
 
 Armourdrillo reuses the existing mini-boss model, native boss cover layout, dedicated original Warden background, Pirate level textures and the Level 5 looped theme used by the native game. It has four health, 1.6-second attack warnings and a two-tile blast cross. Its gate leads to Level 6 only after defeat. Mini-boss checkpoints resume the mini-boss, and upgrades/lives carry across both gates. This arena also hides three of every upgrade beneath 24 wooden crates.
+
+Difficulty update: Level 1 bots have a slow opening and extra initial player protection. Bot movement and hesitation increase gradually through Levels 2–9, with no Level 6 speed cliff. Visible-flame avoidance rises from 5% to 36%; bots never predict bomb fuses. Boss health, warning durations and attack rules remain unchanged.
