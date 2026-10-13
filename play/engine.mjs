@@ -1,6 +1,6 @@
 import {Boss} from './boss.mjs';
 import reference from './level1.mjs?v=24';
-export const VERSION='browser-0.3.0';
+export const VERSION='browser-0.4.0';
 export const COLS=30,ROWS=20,DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 export function cameraDirection(direction,angle){let[x,z]=direction;const quarter=((Math.round(angle/(Math.PI/2))%4)+4)%4;for(let i=0;i<quarter;i++)[x,z]=[z,-x];return[x,z];}
 export const key=(x,z)=>`${x},${z}`;
