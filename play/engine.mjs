@@ -1,6 +1,6 @@
 import {Boss} from './boss.mjs?v=2';
 import reference from './level1.mjs?v=24';
-export const VERSION='browser-0.5.0';
+export const VERSION='browser-0.5.1';
 export const COLS=30,ROWS=20,DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 export function cameraDirection(direction,angle){let[x,z]=direction;const quarter=((Math.round(angle/(Math.PI/2))%4)+4)%4;for(let i=0;i<quarter;i++)[x,z]=[z,-x];return[x,z];}
 export const key=(x,z)=>`${x},${z}`;
@@ -46,6 +46,7 @@ export class Game {
   }
   if(this.boss){const fired=this.boss.step(dt,{x:this.player.x,z:this.player.z},(x,z)=>this.blocked(x,z,this.boss),(x,z)=>this.walls.has(key(x,z)));if(fired.length){for(const[x,z]of fired){const k=key(x,z);this.fire.set(k,{until:this.time+.65});if(this.bombs.has(k))this.explode(k);}this.emit('blast');}}
   const p=visual(this.player),pk=key(Math.round(p.x),Math.round(p.z));if(!this.dying&&(this.fire.has(pk)||(this.boss&&this.boss.hp>0&&Math.hypot(this.boss.x-p.x,this.boss.z-p.z)<.5)||this.bots.some(b=>b.alive&&Math.hypot(visual(b).x-p.x,visual(b).z-p.z)<.5)))this.damage();
+  if(this.state!=='playing')return;
   if(!this.dying){this.pickup(pk);if(this.up.magnet)for(const[dx,dz]of DIRS){const x=this.player.x+dx,z=this.player.z+dz;if(!this.blocked(x,z))this.pickup(key(x,z));}}
   if((this.boss?this.boss.hp<=0:this.defeated===this.bots.length)&&!this.portalActive){this.portalActive=true;this.emit('portal');}
   if(this.portalActive&&!this.player.move&&!this.dying&&same(this.player,this.gate)){this.state='complete';this.score+=1000;this.emit('complete');}
