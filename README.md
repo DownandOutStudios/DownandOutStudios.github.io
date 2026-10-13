@@ -1,13 +1,23 @@
-# Down & Out — GitHub Pages preparation
+<p align="center"><img src="assets/logo.png" alt="Down & Out Game Development Studio" width="680"></p>
 
-Prepared locally, not published. Contains studio artwork and a showcase for Fuse Frenzy, with an external Windows download link. No checkout/payment, secrets, game source, private audit data or large game archive included.
+# Down & Out Games
 
-1. Create a GitHub account at https://github.com/signup. A username of `downandoutgames`, if available, would give `https://downandoutgames.github.io/`.
-2. Create a public repository named exactly `YOURUSERNAME.github.io`.
-3. Upload index.html, style.css, privacy.html, .nojekyll and the assets folder. Keep the folder structure.
-4. In repository Settings → Pages, choose Deploy from a branch, main, / (root), and save.
-5. Verify the actual published URL after deployment. Do not assume the suggested username is available.
+Independent games, colourful worlds and a little clockwork chaos.
 
-Newsletter service remains to be connected. The page clearly states that sign-up is not yet open; no pretend subscriptions or local-only storage. GitHub Pages cannot provide a newsletter backend or run Unreal Pixel Streaming. Keep the playable stream host separate; no temporary stream URL is baked into this site.
+[Visit our website](https://downandoutstudios.github.io/) · [Play Fuse Frenzy](https://downandoutstudios.github.io/play/)
 
-Connect the user's purchased custom domain afterward. No CNAME was created because no domain has been supplied or purchased yet.
+## Fuse Frenzy browser playtest
+
+Place bombs, break wooden crates, uncover upgrades and defeat the clockwork enemies. Metal blocks stop your blast. Walk into the glowing teleport gate after clearing an arena.
+
+The browser port runs on each player's device, with no account or download needed. New campaign levels are tested individually before release. Each available level hides three of each of the eight power-up types. The Unreal Engine version remains a separate game build.
+
+**Controls:** WASD or arrows to move, Space to place a bomb, Q/E to rotate, Escape to pause, and F to detonate remote bombs after collecting that upgrade.
+
+Sound starts off; use the Sound button to enable music. The Report a problem button downloads a report that you can send to the studio.
+
+## Studio updates
+
+Newsletter registration is being prepared and is not collecting email addresses yet. The website will also support the studio's future custom domain.
+
+This repository contains the public website and browser game. Private development audits and the original Unreal project are kept separately.
