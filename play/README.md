@@ -2,7 +2,7 @@
 
 Separate browser port based on the Windows build reached through the user's Fuse Frenzy - Play desktop shortcut: Shareable-2026-10-12-HiddenGates, rebuilt13October2026. This is not an Unreal executable running inside the browser.
 
-The first campaign map reuses the archived build's generator seed20261001, exact80wooden crates,20×30logical grid, hidden rewards and three bot spawn cells. Existing updated character/clockwork enemy meshes, gate, floor, power-up geometry, textures and looped music are converted/copied for web use. The original Unreal project and Windows build are not edited.
+The first campaign map reuses the archived build's generator seed20261001, exact80wooden crates,20×30logical grid, 24 hidden rewards (three of each type) and three bot spawn cells. Existing updated character/clockwork enemy meshes, gate, floor, power-up geometry, textures and looped music are converted/copied for web use. The original Unreal project and Windows build are not edited.
 
 Serve this directory over HTTP/HTTPS. All runtime assets and Three.js are local, with no streaming service, account or server-side game session. Each visitor has an independent in-memory run on their own device. Desktop WebGL2 browsers recommended. Closing/reloading the page resets the run. First browser level only; full UE5 campaign, hidden rooms, bosses, online multiplayer and achievement progression are not included yet.
 
