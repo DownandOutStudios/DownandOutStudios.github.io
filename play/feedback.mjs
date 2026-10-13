@@ -1,0 +1,1 @@
+export function completionThanks(kind,level){return kind==='complete'&&level===10?'<p class="tester-thanks">Thank you for testing our first game here at <strong>@downandoutstudios</strong>. Please report any flaws and share your suggestions for the game. We value any and all input!</p><button id="end-report">Leave a report or suggestion</button>':'';}
