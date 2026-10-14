@@ -2,7 +2,7 @@ import {powerModel} from './power-models.mjs';
 import {modes,clockText,medal} from './modes.mjs';
 import {nextEncounter,savedEncounter} from './progression.mjs';
 import {completionThanks} from './feedback.mjs';
-import {createMenus} from './menus.mjs?v=5';
+import {createMenus} from './menus.mjs?v=6';
 import stages from './stages.mjs?v=11';
 import * as THREE from 'three';
 import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
