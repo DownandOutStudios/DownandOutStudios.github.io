@@ -1,0 +1,4 @@
+export const modes={arcade:{name:'Arcade Campaign',description:'Ten levels and two bosses. Three lives, three continues and campaign saves.',lives:3,continues:3},time:{name:'Time Attack',description:'Race through the full campaign. No continues or saves. Beat your personal best time.',lives:3,continues:0},hardcore:{name:'Hardcore',description:'One life through the full campaign. No extra lives, continues or saves. Shields still protect you.',lives:1,continues:0},marathon:{name:'Frenzy Marathon',description:'One complete campaign run. Shared lives and cumulative score across every stage. No continues or saves.',lives:3,continues:0}};
+export const modeKey=k=>Object.hasOwn(modes,k)?k:'arcade';
+export const clockText=t=>{const s=Math.floor(t);return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}.${String(Math.floor((t-s)*100)).padStart(2,'0')}`;};
+export const medal=t=>t<=720?'Gold':t<=1200?'Silver':t<=1800?'Bronze':'Finisher';

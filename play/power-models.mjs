@@ -1,0 +1,12 @@
+import * as THREE from 'three';
+export function powerModel(kind){const g=new THREE.Group();const brass=new THREE.MeshStandardMaterial({color:0xd9ac55,metalness:.65,roughness:.35});const add=(geometry,material,x=0,y=0,z=0)=>{const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);g.add(m);return m;};add(new THREE.CylinderGeometry(.3,.34,.10,24),brass,0,.05);
+ if(kind==='freeze'){const ice=new THREE.MeshStandardMaterial({color:0x7ceaff,emissive:0x156c85,emissiveIntensity:.3,metalness:.12,roughness:.22});const snow=new THREE.MeshStandardMaterial({color:0xe8fbff,emissive:0x357b91,emissiveIntensity:.12,roughness:.25});const snowflake=new THREE.Group();snowflake.position.y=.46;g.add(snowflake);
+  const beam=(x1,y1,x2,y2,width,material,z=0)=>{const dx=x2-x1,dy=y2-y1,m=new THREE.Mesh(new THREE.BoxGeometry(width,Math.hypot(dx,dy),.075),material);m.position.set((x1+x2)/2,(y1+y2)/2,z);m.rotation.z=-Math.atan2(dx,dy);snowflake.add(m);};
+  for(let i=0;i<6;i++){const a=i*Math.PI/3,u=[Math.sin(a),Math.cos(a)],v=[Math.cos(a),-Math.sin(a)];beam(0,0,u[0]*.30,u[1]*.30,.045,ice);for(const side of [-1,1]){beam(u[0]*.17,u[1]*.17,u[0]*.24+v[0]*.085*side,u[1]*.24+v[1]*.085*side,.030,snow);}}
+  const core=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.09,6),snow);core.rotation.x=Math.PI/2;snowflake.add(core);add(new THREE.CylinderGeometry(.035,.035,.13,12),brass,0,.135);add(new THREE.TorusGeometry(.23,.022,8,24),brass,0,.11).rotation.x=Math.PI/2;
+ }else if(kind==='push'){const shell=new THREE.MeshStandardMaterial({color:0x203744,metalness:.5,roughness:.35});add(new THREE.SphereGeometry(.20,20,16),shell,-.12,.31);const band=add(new THREE.TorusGeometry(.20,.028,8,24),brass,-.12,.31);band.rotation.x=Math.PI/2;const fuse=add(new THREE.CylinderGeometry(.022,.022,.13,8),brass,-.10,.55);fuse.rotation.z=-.3;add(new THREE.SphereGeometry(.045,12,8),new THREE.MeshStandardMaterial({color:0xff9f35,emissive:0xff5900,emissiveIntensity:.7}),-.08,.63);
+  // Two solid brass chevrons communicate the two-tile push from either side.
+  for(const x of [.12,.32]){const shape=new THREE.Shape();shape.moveTo(-.10,-.17);shape.lineTo(0,-.17);shape.lineTo(.12,0);shape.lineTo(0,.17);shape.lineTo(-.10,.17);shape.lineTo(.02,0);shape.closePath();const arrow=add(new THREE.ExtrudeGeometry(shape,{depth:.065,bevelEnabled:true,bevelThickness:.008,bevelSize:.008,bevelSegments:2}),brass,x,.35,.14);arrow.name='Two-tile push arrow';}
+ }
+ g.name=kind==='freeze'?'Freeze snowflake':'Double Bomb Push';g.userData.powerUp=kind;
+ return g;}
