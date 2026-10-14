@@ -1,8 +1,9 @@
+import {randomizeCrates} from './crate-randomizer.mjs';
 import {modes,modeKey} from './modes.mjs';
 import {botDifficulty} from './difficulty.mjs';
 import {Boss} from './boss.mjs?v=2';
 import reference from './level1.mjs?v=24';
-export const VERSION='browser-0.8.6';
+export const VERSION='browser-0.8.7';
 export const COLS=30,ROWS=20,DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 export function cameraDirection(direction,angle){let[x,z]=direction;const quarter=((Math.round(angle/(Math.PI/2))%4)+4)%4;for(let i=0;i<quarter;i++)[x,z]=[z,-x];return[x,z];}
 export const key=(x,z)=>`${x},${z}`;
@@ -18,6 +19,7 @@ export function layout(seed=20261001,definition=reference){
 }
 export class Game {
  constructor(seed=20261001,definition=reference,options={}){this.mode=modeKey(options.mode);this.continues=modes[this.mode].continues;this.seed=seed;this.definition=definition;this.level=definition.level||1;this.entry=null;this.events=[];this.reset();}
+ reshuffle(){if(this.definition.boss||this.definition.miniBoss||this.definition.hiddenRoom)return;const seed=(Math.imul(this.definition.runSeed??this.seed,1664525)+1013904223)>>>0;this.definition=randomizeCrates(this.definition,seed);this.seed=seed;const l=layout(seed,this.definition);this.crates=l.crates;this.hidden=l.hidden;this.pickups.clear();this.bombs.clear();this.fire.clear();this.bots.forEach((b,i)=>{b.x=l.bots[i].x;b.z=l.bots[i].z;b.move=null;b.think=botDifficulty(this.level).startDelay+i*.3;});this.emit('reshuffle');}
  advance(definition){this.entry={up:{...this.up},score:this.score,time:this.time,freezeUntil:this.freezeUntil,circuitMask:this.circuitMask,roomVisited:this.roomVisited};this.definition=definition;this.level=definition.level;this.seed=definition.seed;this.reset();}
  reset(){const l=layout(this.seed,this.definition);Object.assign(this,l);this.boss=this.definition.boss?new Boss(this.definition.boss):null;this.bots=l.bots.map((b,i)=>({...b,id:i,alive:true,move:null,think:botDifficulty(this.level).startDelay+i*.3,lastDir:null}));this.player={...l.spawn,move:null};this.bombs=new Map();this.fire=new Map();this.pickups=new Map();this.up={speed:0,bombs:1,range:2,shield:0,life:modes[this.mode].lives,kick:0,freeze:0,push:0};this.freezeUntil=0;this.circuitMask=0;this.roomVisited=0;this.time=0;this.score=0;this.defeated=0;this.state='playing';this.portalActive=false;this.invincible=this.level===1?4:2;this.events=[];this.dying=0;if(this.entry){this.up={...this.up,...this.entry.up};this.up.push=this.entry.up.push??this.entry.up.magnet??0;delete this.up.remote;delete this.up.magnet;this.circuitMask=this.entry.circuitMask||0;this.roomVisited=this.entry.roomVisited||0;this.score=this.entry.score;this.time=this.entry.time;this.freezeUntil=this.entry.freezeUntil||0;this.up.freeze=this.freezeUntil>this.time?1:0;}}
  blocked(x,z,actor=null){const k=key(x,z);return !!(this.boss&&this.boss.hp>0&&this.boss.x===x&&this.boss.z===z&&actor!==this.boss)||!this.floor.has(k)||this.walls.has(k)||this.crates.has(k)||(this.bombs.has(k)&&!(actor&&same(actor,this.bombs.get(k))));}
@@ -33,13 +35,13 @@ export class Game {
  }
  damage(){if(this.state!=='playing'||this.invincible>0||this.dying)return;if(this.up.shield>0){this.up.shield--;this.invincible=1.5;this.emit('shield');return;}this.up.life--;this.player.move=null;this.dying=.8;this.emit('hit');if(this.up.life<=0){this.state='gameover';this.emit('gameover');}}
  pickup(k){const p=this.pickups.get(k);if(!p||p.ready>this.time)return;this.pickups.delete(k);const kind=p.kind;if(kind==='life'){if(this.mode!=='hardcore')this.up.life=Math.min(9,this.up.life+1);}else if(kind==='speed')this.up.speed=Math.min(5,this.up.speed+1);else if(kind==='bombs')this.up.bombs=Math.min(6,this.up.bombs+1);else if(kind==='range')this.up.range=Math.min(8,this.up.range+1);else if(kind==='freeze'){this.freezeUntil=this.time+5;this.up.freeze=1;}else this.up[kind]=Math.min(kind==='shield'?5:1,this.up[kind]+1);this.score+=100;this.emit('pickup',{kind});}
- continueRun(){if(this.mode!=='arcade'||this.state!=='gameover'||this.continues<=0)return false;this.continues--;this.entry={up:{...this.up,life:3},score:this.score,time:this.time,circuitMask:this.circuitMask,roomVisited:this.roomVisited};this.reset();return true;}
+ continueRun(){if(this.mode!=='arcade'||this.state!=='gameover'||this.continues<=0)return false;this.continues--;this.entry={up:{...this.up,life:3},score:this.score,time:this.time,circuitMask:this.circuitMask,roomVisited:this.roomVisited};this.reset();this.reshuffle();return true;}
  pause(){if(this.state==='playing')this.state='paused';else if(this.state==='paused')this.state='playing';}
  step(dt,direction=null){if(this.state!=='playing')return;dt=Math.max(0,Math.min(dt,.04));this.time+=dt;this.invincible=Math.max(0,this.invincible-dt);const frozen=this.freezeUntil>this.time;if(!frozen)this.up.freeze=0;
   for(const[k,f]of this.fire)if(f.until<=this.time)this.fire.delete(k);
   for(const[k,b]of [...this.bombs]){b.t-=dt;if(b.t<=0)this.explode(k);}
   const actors=[this.player,...this.bots.filter(b=>b.alive&&!frozen)];for(const a of actors)if(a.move){a.move.t+=dt;if(a.move.t>=a.move.duration){a.x=a.move.x;a.z=a.move.z;a.move=null;}}
-  if(this.dying>0){this.dying-=dt;if(this.dying<=0){this.dying=0;Object.assign(this.player,this.spawn,{move:null});this.invincible=2.5;}}
+  if(this.dying>0){this.dying-=dt;if(this.dying<=0){this.dying=0;Object.assign(this.player,this.spawn,{move:null});this.reshuffle();this.invincible=2.5;}}
   else if(direction)this.moveActor(this.player,direction[0],direction[1],.2/(1+this.up.speed*.13));
   for(const b of this.bots){if(!b.alive)continue;const p=visual(b);if(this.fire.has(key(Math.round(p.x),Math.round(p.z)))){b.alive=false;b.move=null;this.defeated++;this.score+=150;this.emit('bot',{id:b.id});continue;}
    if(frozen||b.move)continue;b.think-=dt;if(b.think<=0){b.think=botDifficulty(this.level).thinkSeconds;const options=DIRS.filter(([dx,dz])=>!this.blocked(b.x+dx,b.z+dz,b));const r=random(this.seed+Math.floor(this.time*17)+b.id*77);let choices=options;
@@ -56,4 +58,5 @@ export class Game {
   if(this.portalActive&&!this.player.move&&!this.dying&&same(this.player,this.gate)){this.state='complete';this.score+=1000;this.emit('complete');}
  }
 }
+
 

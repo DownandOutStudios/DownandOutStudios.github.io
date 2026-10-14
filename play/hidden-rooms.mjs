@@ -1,5 +1,5 @@
 import {nextEncounter} from './progression.mjs';
-import {Game,key,visual} from './engine.mjs?v=15';
+import {Game,key,visual} from './engine.mjs?v=16';
 export const enabledRooms=6;
 export const roomNames=['','Workshop Pressure Lock','Steam Routing Chamber','Crystal Circuit Chamber',"Timekeeper's Vault",'Polarity Engine','The Hidden Core'];
 export function roomMeta(n){return {id:'hidden'+n,hiddenRoom:n,level:Math.min(10,n*2),finalRoom:n===6,after:n===5?9:n*2,name:roomNames[n],folder:'levels/'+Math.min(10,n*2),background:`rooms/${n}/background.webp`,music:`rooms/${n}/theme.mp3`};}
@@ -24,3 +24,4 @@ export function validRoomSave(v,n=1){if(!v||!Array.isArray(v.weights)||typeof v.
 function missingCircuitRoom(game){for(let n=1;n<=5;n++)if(!(game.circuitMask&(1<<(n-1))))return {...roomMeta(n),catchUp:true};return null;}
 export function nextRoomEncounter(game,stages){if(game.definition.hiddenRoom){if(game.definition.finalRoom)return null;if(game.definition.catchUp)return missingCircuitRoom(game)||roomMeta(6);return nextEncounter(stages,{level:game.definition.after});}const room=hiddenAfter(game);if(room)return room;if(game.mode==='arcade'&&game.level===10&&enabledRooms>=6)return missingCircuitRoom(game)||roomMeta(6);return nextEncounter(stages,game.definition);}
 export function roomHelp(n){return ['', 'Push both brass weights onto their blue pressure plates. Bomb the circuit crate and collect its wedge. R resets a stuck puzzle.', 'Press F beside valves: source, branch and turbine ON; bleed OFF. Avoid active steam vents. Bomb the circuit crate and collect its wedge.', 'Press F beside POWER, then rotate relays to their engraved arrows. Fragile floor collapses after departure. Bomb the circuit crate and collect its wedge.', 'Collect gears 1, 2 and 3; press F beside matching sockets to fit them. Then turn 1 → 3 → 2. Bomb the circuit crate and collect its wedge.', 'Charge both coils with F. Push blocks into the socket rows. Use PULSE to shift them onto sockets; POLARITY reverses direction. Collect the fifth wedge.', 'Seat both weights. Press F at valves in order 1 → 3 → 2 → 4 within 45 seconds, then match relay arrows. Avoid steam and fragile tiles. The final gate needs all five pieces.'][n]||'';}
+
